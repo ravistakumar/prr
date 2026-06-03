@@ -40,19 +40,19 @@ func BuildMetaPrompt(req Request) string {
 	b.WriteString(`  "refined_prompt" (an improved, specific version of the prompt),` + "\n")
 	b.WriteString(`  "questions" (an array of at most 3 targeted clarifying questions; empty if confident).` + "\n\n")
 	b.WriteString("Environment signals:\n")
-	b.WriteString(fmt.Sprintf("  language: %s\n", req.Signals.Language))
+	fmt.Fprintf(&b, "  language: %s\n", req.Signals.Language)
 	if req.Signals.Framework != "" {
-		b.WriteString(fmt.Sprintf("  framework: %s\n", req.Signals.Framework))
+		fmt.Fprintf(&b, "  framework: %s\n", req.Signals.Framework)
 	}
 	if req.Signals.IsGitRepo {
-		b.WriteString(fmt.Sprintf("  git branch: %s\n", req.Signals.GitBranch))
+		fmt.Fprintf(&b, "  git branch: %s\n", req.Signals.GitBranch)
 	}
 	b.WriteString("\nRaw prompt:\n")
 	b.WriteString(req.RawPrompt + "\n")
 	if len(req.Answers) > 0 {
 		b.WriteString("\nThe developer already answered these clarifying questions:\n")
 		for _, qa := range req.Answers {
-			b.WriteString(fmt.Sprintf("  Q: %s\n  A: %s\n", qa.Question, qa.Answer))
+			fmt.Fprintf(&b, "  Q: %s\n  A: %s\n", qa.Question, qa.Answer)
 		}
 		b.WriteString("Incorporate these answers and raise confidence accordingly.\n")
 	}
