@@ -12,8 +12,7 @@ build — the first time.
 [![Go Report Card](https://goreportcard.com/badge/github.com/ravistakumar/prr)](https://goreportcard.com/report/github.com/ravistakumar/prr)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-<!-- TODO: record and embed docs/demo.gif before launch -->
-<!-- ![prr demo](docs/demo.gif) -->
+![prr demo](docs/demo.gif)
 
 </div>
 
