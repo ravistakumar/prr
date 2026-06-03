@@ -9,17 +9,20 @@ import (
 	"strings"
 )
 
-// cmdAgent drives a CLI that takes a prompt as a single argument. askSub is the
-// subcommand/flag for headless mode (e.g. "-p" for claude, "exec" for codex);
-// Launch runs the bare command with the prompt for an interactive session.
+// cmdAgent drives a CLI that takes a prompt as its final argument. askArgs are
+// the fixed args for the headless refine call (e.g. ["-p"] for claude,
+// ["run"] for opencode); launchArgs are the fixed args for the interactive
+// handoff (e.g. nil for claude, ["--prompt"] for opencode). The prompt is
+// always appended after these args.
 type cmdAgent struct {
-	name    string
-	command string
-	askSub  string
+	name       string
+	command    string
+	askArgs    []string
+	launchArgs []string
 }
 
-func newCmdAgent(name, command, askSub string) *cmdAgent {
-	return &cmdAgent{name: name, command: command, askSub: askSub}
+func newCmdAgent(name, command string, askArgs, launchArgs []string) *cmdAgent {
+	return &cmdAgent{name: name, command: command, askArgs: askArgs, launchArgs: launchArgs}
 }
 
 func (a *cmdAgent) Name() string { return a.name }
@@ -29,8 +32,16 @@ func (a *cmdAgent) Available() bool {
 	return err == nil
 }
 
+// argv builds the full argument list for the command: the fixed args followed
+// by the prompt. A fresh slice is returned so the stored args are never mutated.
+func argv(fixed []string, prompt string) []string {
+	out := make([]string, 0, len(fixed)+1)
+	out = append(out, fixed...)
+	return append(out, prompt)
+}
+
 func (a *cmdAgent) Ask(ctx context.Context, metaPrompt string) (string, error) {
-	cmd := exec.CommandContext(ctx, a.command, a.askSub, metaPrompt)
+	cmd := exec.CommandContext(ctx, a.command, argv(a.askArgs, metaPrompt)...)
 	var out, errOut bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &errOut
@@ -44,7 +55,7 @@ func (a *cmdAgent) Ask(ctx context.Context, metaPrompt string) (string, error) {
 }
 
 func (a *cmdAgent) Launch(ctx context.Context, finalPrompt string) error {
-	cmd := exec.CommandContext(ctx, a.command, finalPrompt)
+	cmd := exec.CommandContext(ctx, a.command, argv(a.launchArgs, finalPrompt)...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
