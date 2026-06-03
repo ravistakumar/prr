@@ -18,6 +18,7 @@ import (
 	"github.com/ravistakumar/prr/internal/config"
 	"github.com/ravistakumar/prr/internal/interview"
 	"github.com/ravistakumar/prr/internal/run"
+	"github.com/ravistakumar/prr/internal/signals"
 )
 
 var version = "dev" // overridden at build time via -ldflags
@@ -141,8 +142,11 @@ func load() config.Config {
 }
 
 func configPath() string {
-	if dir, err := os.UserConfigDir(); err == nil {
+	if dir := os.Getenv("XDG_CONFIG_HOME"); dir != "" {
 		return filepath.Join(dir, "prr", "config.toml")
+	}
+	if home, err := os.UserHomeDir(); err == nil {
+		return filepath.Join(home, ".config", "prr", "config.toml")
 	}
 	return ""
 }
@@ -158,6 +162,16 @@ func configCmd() *cobra.Command {
 			fmt.Fprintf(out, "mode:       %s\n", cfg.Mode)
 			fmt.Fprintf(out, "threshold:  %.2f\n", cfg.Threshold)
 			fmt.Fprintf(out, "max_rounds: %d\n", cfg.MaxRounds)
+			if ag, err := agent.Detect(cfg); err == nil {
+				fmt.Fprintf(out, "detected:   %s\n", ag.Name())
+			} else {
+				fmt.Fprintf(out, "detected:   none\n")
+			}
+			sig := signals.Detect(".")
+			fmt.Fprintf(out, "language:   %s\n", sig.Language)
+			if sig.IsGitRepo {
+				fmt.Fprintf(out, "git branch: %s\n", sig.GitBranch)
+			}
 			return nil
 		},
 	}
