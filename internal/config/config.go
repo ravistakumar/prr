@@ -49,6 +49,8 @@ func Defaults() Config {
 
 // Load reads a TOML file over the defaults. A missing file is not an error:
 // the defaults are returned unchanged.
+// An [agents] table in the file is merged over the defaults, so omitting an
+// agent there keeps its built-in default rather than removing it.
 func Load(path string) (Config, error) {
 	c := Defaults()
 	_, err := toml.DecodeFile(path, &c)
@@ -70,6 +72,8 @@ func (c Config) ApplyEnv(getenv func(string) string) Config {
 		c.Agent = v
 	}
 	if v := getenv("PRR_MODE"); v != "" {
+		// PRR_MODE is cast as-is and not validated against the three known modes;
+		// callers validate downstream.
 		c.Mode = Mode(v)
 	}
 	if v := getenv("PRR_THRESHOLD"); v != "" {

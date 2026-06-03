@@ -20,6 +20,12 @@ func TestDefaults(t *testing.T) {
 	if c.MaxRounds != 2 {
 		t.Fatalf("default max rounds = %d, want 2", c.MaxRounds)
 	}
+	if c.Agents["claude"].Command != "claude" {
+		t.Fatalf("default claude command = %q, want claude", c.Agents["claude"].Command)
+	}
+	if c.Agents["codex"].Command != "codex" {
+		t.Fatalf("default codex command = %q, want codex", c.Agents["codex"].Command)
+	}
 }
 
 func TestLoadOverridesDefaults(t *testing.T) {
@@ -45,6 +51,9 @@ func TestLoadOverridesDefaults(t *testing.T) {
 	if got := c.Agents["claude"].Command; got != "claude-beta" {
 		t.Fatalf("claude command = %q, want claude-beta", got)
 	}
+	if _, ok := c.Agents["codex"]; !ok {
+		t.Fatal("default codex agent should survive a partial [agents] override")
+	}
 }
 
 func TestLoadMissingFileReturnsDefaults(t *testing.T) {
@@ -59,12 +68,23 @@ func TestLoadMissingFileReturnsDefaults(t *testing.T) {
 
 func TestApplyEnv(t *testing.T) {
 	c := Defaults()
-	env := map[string]string{"PRR_MODE": "print", "PRR_THRESHOLD": "0.9"}
+	env := map[string]string{
+		"PRR_MODE":       "print",
+		"PRR_THRESHOLD":  "0.9",
+		"PRR_AGENT":      "codex",
+		"PRR_MAX_ROUNDS": "5",
+	}
 	c = c.ApplyEnv(func(k string) string { return env[k] })
 	if c.Mode != ModePrint {
 		t.Fatalf("mode = %q, want print", c.Mode)
 	}
 	if c.Threshold != 0.9 {
 		t.Fatalf("threshold = %v, want 0.9", c.Threshold)
+	}
+	if c.Agent != "codex" {
+		t.Fatalf("agent = %q, want codex", c.Agent)
+	}
+	if c.MaxRounds != 5 {
+		t.Fatalf("max_rounds = %d, want 5", c.MaxRounds)
 	}
 }
