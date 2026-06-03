@@ -1,7 +1,15 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+
+	"github.com/ravistakumar/prr/internal/cli"
+)
 
 func main() {
-	fmt.Println("prr")
+	if err := cli.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, "prr:", err)
+		os.Exit(1)
+	}
 }
