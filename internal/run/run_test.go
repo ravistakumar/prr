@@ -145,3 +145,60 @@ func TestRunRetriesOnUnparseableJSON(t *testing.T) {
 		t.Fatalf("expected 1 ask + 1 retry = 2, got %d", len(fa.asks))
 	}
 }
+
+func TestRunEmptyRefinementFallsBackToOriginal(t *testing.T) {
+	fa := &fakeAgent{replies: []string{`{"confidence":0.95,"refined_prompt":"","questions":[]}`}}
+	var out bytes.Buffer
+	r := Runner{Agent: fa, Asker: interview.ScriptedAsker{}, Cfg: baseCfg(config.ModeAuto), Out: &out, Err: &out, In: strings.NewReader("")}
+	if err := r.Run(context.Background(), "ORIGINAL"); err != nil {
+		t.Fatal(err)
+	}
+	if fa.launched != "ORIGINAL" {
+		t.Fatalf("empty refinement should fall back to original, launched %q", fa.launched)
+	}
+	if !strings.Contains(out.String(), "warning") {
+		t.Error("empty refinement should warn on stderr")
+	}
+}
+
+func TestRunConfirmModeLaunchesOnYes(t *testing.T) {
+	fa := &fakeAgent{replies: []string{`{"confidence":0.95,"refined_prompt":"REFINED","questions":[]}`}}
+	var out bytes.Buffer
+	r := Runner{Agent: fa, Asker: interview.ScriptedAsker{}, Cfg: baseCfg(config.ModeConfirm), Interactive: true, Out: &out, Err: &out, In: strings.NewReader("y\n")}
+	if err := r.Run(context.Background(), "p"); err != nil {
+		t.Fatal(err)
+	}
+	if fa.launched != "REFINED" {
+		t.Fatalf("confirm+yes should launch refined, launched %q", fa.launched)
+	}
+}
+
+func TestRunConfirmModeRejectsOnNo(t *testing.T) {
+	fa := &fakeAgent{replies: []string{`{"confidence":0.95,"refined_prompt":"REFINED","questions":[]}`}}
+	var out bytes.Buffer
+	r := Runner{Agent: fa, Asker: interview.ScriptedAsker{}, Cfg: baseCfg(config.ModeConfirm), Interactive: true, Out: &out, Err: &out, In: strings.NewReader("n\n")}
+	if err := r.Run(context.Background(), "p"); err != nil {
+		t.Fatal(err)
+	}
+	if fa.launched != "" {
+		t.Fatalf("confirm+no should NOT launch, launched %q", fa.launched)
+	}
+	if !strings.Contains(out.String(), "REFINED") {
+		t.Error("confirm+no should still print the refined prompt so nothing is lost")
+	}
+}
+
+func TestRunConfirmNonInteractiveDowngradesToPrint(t *testing.T) {
+	fa := &fakeAgent{replies: []string{`{"confidence":0.95,"refined_prompt":"REFINED","questions":[]}`}}
+	var out bytes.Buffer
+	r := Runner{Agent: fa, Asker: interview.ScriptedAsker{}, Cfg: baseCfg(config.ModeConfirm), Interactive: false, Out: &out, Err: &out, In: strings.NewReader("")}
+	if err := r.Run(context.Background(), "p"); err != nil {
+		t.Fatal(err)
+	}
+	if fa.launched != "" {
+		t.Fatalf("non-interactive confirm should downgrade to print (no launch), launched %q", fa.launched)
+	}
+	if !strings.Contains(out.String(), "REFINED") {
+		t.Error("non-interactive confirm should print the refined prompt")
+	}
+}

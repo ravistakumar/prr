@@ -33,8 +33,8 @@ func (r Runner) Run(ctx context.Context, rawPrompt string) error {
 	sig := signals.Detect(r.dir())
 
 	final, ok := r.refine(ctx, rawPrompt, sig)
-	if !ok {
-		// Pass-through: optimization failed, proceed with the original prompt.
+	if !ok || final == "" {
+		// Pass-through: optimization failed or returned empty, proceed with the original prompt.
 		fmt.Fprintln(r.Err, "warning: prompt optimization failed; using your original prompt")
 		final = rawPrompt
 	}
@@ -45,11 +45,16 @@ func (r Runner) Run(ctx context.Context, rawPrompt string) error {
 // refine runs up to MaxRounds optimization rounds, interviewing between rounds
 // while confidence is below threshold. The bool is false if every round failed.
 func (r Runner) refine(ctx context.Context, raw string, sig signals.Signals) (string, bool) {
+	rounds := r.Cfg.MaxRounds
+	if rounds < 1 {
+		rounds = 1
+	}
+
 	var answers []optimize.QA
 	best := ""
 	any := false
 
-	for round := 0; round < r.Cfg.MaxRounds; round++ {
+	for round := 0; round < rounds; round++ {
 		req := optimize.Request{RawPrompt: raw, Signals: sig, Answers: answers}
 		res, err := r.askParse(ctx, optimize.BuildMetaPrompt(req))
 		if err != nil {
@@ -62,7 +67,7 @@ func (r Runner) refine(ctx context.Context, raw string, sig signals.Signals) (st
 		if res.Confidence >= r.Cfg.Threshold || len(res.Questions) == 0 {
 			return best, true
 		}
-		if round == r.Cfg.MaxRounds-1 {
+		if round == rounds-1 {
 			break // bounded: do not interview again, proceed with best
 		}
 		qa, err := r.Asker.Ask(res.Questions)
