@@ -76,6 +76,9 @@ func ParseResult(raw string) (Result, error) {
 
 // extractJSONObject returns the substring from the first '{' to its matching
 // closing '}', accounting for nesting. Returns "" if none is found.
+// NOTE: brace characters inside JSON string values are not skipped, so a lone
+// '}' inside a string literal can end the match early. This is rare for
+// natural-language prompts, and the run layer retries on a parse failure.
 func extractJSONObject(s string) string {
 	start := strings.IndexByte(s, '{')
 	if start < 0 {
