@@ -3,8 +3,10 @@ package agent
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 // cmdAgent drives a CLI that takes a prompt as a single argument. askSub is the
@@ -33,6 +35,9 @@ func (a *cmdAgent) Ask(ctx context.Context, metaPrompt string) (string, error) {
 	cmd.Stdout = &out
 	cmd.Stderr = &errOut
 	if err := cmd.Run(); err != nil {
+		if errOut.Len() > 0 {
+			return "", fmt.Errorf("%w: %s", err, strings.TrimSpace(errOut.String()))
+		}
 		return "", err
 	}
 	return out.String(), nil
