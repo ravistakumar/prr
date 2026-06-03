@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -23,12 +24,12 @@ var version = "dev" // overridden at build time via -ldflags
 
 // flagSet holds the raw command-line flags before resolution.
 type flagSet struct {
-	auto      bool
-	print     bool
-	confirm   bool
-	agent     string
-	threshold float64
-	maxRounds int
+	auto         bool
+	print        bool
+	confirm      bool
+	agent        string
+	threshold    float64
+	maxRounds    int
 	thresholdSet bool
 	maxRoundsSet bool
 }
@@ -71,6 +72,8 @@ func Execute() error {
 	root.Flags().StringVar(&f.agent, "agent", "", "force agent: claude | codex (default: auto-detect)")
 	root.Flags().Float64Var(&f.threshold, "threshold", 0.7, "confidence gate 0.0-1.0")
 	root.Flags().IntVar(&f.maxRounds, "max-rounds", 2, "max interview rounds")
+
+	root.MarkFlagsMutuallyExclusive("auto", "print", "confirm")
 
 	root.AddCommand(configCmd())
 	return root.Execute()
@@ -117,11 +120,10 @@ func runRoot(f flagSet, args []string) error {
 // readPrompt joins args, or reads from stdin when no args are given.
 func readPrompt(args []string) (string, error) {
 	if len(args) > 0 {
-		joined := args[0]
-		for _, a := range args[1:] {
-			joined += " " + a
-		}
-		return joined, nil
+		return strings.Join(args, " "), nil
+	}
+	if term.IsTerminal(int(os.Stdin.Fd())) {
+		return "", fmt.Errorf("no prompt given; pass a quoted prompt or pipe one via stdin")
 	}
 	data, err := io.ReadAll(os.Stdin)
 	if err != nil {
@@ -151,10 +153,11 @@ func configCmd() *cobra.Command {
 		Short: "Print resolved configuration",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cfg := load()
-			fmt.Printf("agent:      %s\n", cfg.Agent)
-			fmt.Printf("mode:       %s\n", cfg.Mode)
-			fmt.Printf("threshold:  %.2f\n", cfg.Threshold)
-			fmt.Printf("max_rounds: %d\n", cfg.MaxRounds)
+			out := cmd.OutOrStdout()
+			fmt.Fprintf(out, "agent:      %s\n", cfg.Agent)
+			fmt.Fprintf(out, "mode:       %s\n", cfg.Mode)
+			fmt.Fprintf(out, "threshold:  %.2f\n", cfg.Threshold)
+			fmt.Fprintf(out, "max_rounds: %d\n", cfg.MaxRounds)
 			return nil
 		},
 	}
