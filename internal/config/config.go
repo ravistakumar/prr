@@ -41,8 +41,10 @@ func Defaults() Config {
 		Threshold: 0.7,
 		MaxRounds: 2,
 		Agents: map[string]AgentConfig{
-			"claude": {Command: "claude"},
-			"codex":  {Command: "codex"},
+			"claude":   {Command: "claude"},
+			"codex":    {Command: "codex"},
+			"opencode": {Command: "opencode"},
+			"aider":    {Command: "aider"},
 		},
 	}
 }

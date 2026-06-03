@@ -26,7 +26,7 @@ agent and fixes the prompt first:
   ambiguous; crisp prompts pass straight through.
 - **Reuses your agent** — no API keys. It rides on your already-authenticated
   `claude` / `codex` CLI, so refinement quality matches your own model.
-- **Agent-agnostic** — works with Claude Code today, Codex today, more tomorrow.
+- **Agent-agnostic** — works with **Claude Code, Codex, OpenCode, and Aider**, auto-detected (more to come).
 - **One static binary** — installs anywhere, no runtime.
 
 ## Install
@@ -69,11 +69,32 @@ original prompt so it never blocks your work.
 `~/.config/prr/config.toml` (overridden by `PRR_*` env vars, then flags):
 
 ```toml
-agent      = "auto"      # auto | claude | codex
+agent      = "auto"      # auto | claude | codex | opencode | aider
 mode       = "confirm"   # confirm | auto | print
 threshold  = 0.7
 max_rounds = 2
+
+# Override an agent's command if it isn't on PATH under the default name:
+[agents.opencode]
+command = "opencode"
 ```
+
+## Supported agents
+
+`prr` auto-detects the first installed agent (in this order) or you can force one
+with `--agent`:
+
+| Agent | Refine call (headless) | Handoff |
+| --- | --- | --- |
+| Claude Code | `claude -p` | `claude "<prompt>"` |
+| Codex | `codex exec` | `codex "<prompt>"` |
+| OpenCode | `opencode run` | `opencode --prompt "<prompt>"` |
+| Aider | `aider --yes --no-auto-commits --message` | `aider --yes --message "<prompt>"` (one-shot) |
+
+Aider is edit-oriented and has no interactive "chat-only" mode, so its handoff
+runs the refined prompt **one-shot** (`--message`) rather than opening a
+persistent session. To add another agent, implement one case in
+`internal/agent` — the prompt is always passed as the final argument.
 
 ## Contributing
 

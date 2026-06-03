@@ -1,6 +1,6 @@
 // Package agent isolates all interaction with external coding-agent CLIs
-// (Claude Code, Codex) behind a single interface. Adding a new agent is one
-// new constructor; a CLI flag change touches only exec.go.
+// (Claude Code, Codex, OpenCode, Aider) behind a single interface. Adding a new
+// agent is one new case in New; a CLI flag change touches only that case.
 package agent
 
 import (
@@ -19,8 +19,12 @@ type Agent interface {
 	Launch(ctx context.Context, finalPrompt string) error
 }
 
-// New builds the named agent ("claude" or "codex") using cfg for command
-// overrides.
+// supported lists the agents prr knows how to drive, in auto-detection order.
+var supported = []string{"claude", "codex", "opencode", "aider"}
+
+// New builds a supported agent using cfg for command overrides. The argument
+// lists encode each CLI's documented non-interactive (Ask) and handoff
+// (Launch) invocations; the prompt is appended after them.
 func New(name string, cfg config.Config) (Agent, error) {
 	command := name
 	if ac, ok := cfg.Agents[name]; ok && ac.Command != "" {
@@ -28,9 +32,20 @@ func New(name string, cfg config.Config) (Agent, error) {
 	}
 	switch name {
 	case "claude":
-		return newCmdAgent("claude", command, "-p"), nil
+		// claude -p "<prompt>"  /  claude "<prompt>"
+		return newCmdAgent("claude", command, []string{"-p"}, nil), nil
 	case "codex":
-		return newCmdAgent("codex", command, "exec"), nil
+		// codex exec "<prompt>"  /  codex "<prompt>"
+		return newCmdAgent("codex", command, []string{"exec"}, nil), nil
+	case "opencode":
+		// opencode run "<prompt>"  /  opencode --prompt "<prompt>"
+		return newCmdAgent("opencode", command, []string{"run"}, []string{"--prompt"}), nil
+	case "aider":
+		// aider is edit-oriented: --message runs one-shot and exits, so the
+		// same non-interactive invocation is used for both Ask and Launch.
+		return newCmdAgent("aider", command,
+			[]string{"--yes", "--no-auto-commits", "--message"},
+			[]string{"--yes", "--message"}), nil
 	default:
 		return nil, fmt.Errorf("unknown agent %q", name)
 	}
@@ -49,7 +64,7 @@ func Detect(cfg config.Config) (Agent, error) {
 		}
 		return a, nil
 	}
-	for _, name := range []string{"claude", "codex"} {
+	for _, name := range supported {
 		a, err := New(name, cfg)
 		if err != nil {
 			continue
@@ -58,5 +73,5 @@ func Detect(cfg config.Config) (Agent, error) {
 			return a, nil
 		}
 	}
-	return nil, fmt.Errorf("no supported agent found; install Claude Code or Codex, or set --agent")
+	return nil, fmt.Errorf("no supported agent found; install Claude Code, Codex, OpenCode, or Aider, or set --agent")
 }
