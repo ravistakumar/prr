@@ -21,8 +21,8 @@ type fakeAgent struct {
 	launched string
 }
 
-func (f *fakeAgent) Name() string      { return "fake" }
-func (f *fakeAgent) Available() bool    { return true }
+func (f *fakeAgent) Name() string    { return "fake" }
+func (f *fakeAgent) Available() bool { return true }
 func (f *fakeAgent) Ask(_ context.Context, meta string) (string, error) {
 	f.asks = append(f.asks, meta)
 	r := f.replies[0]
@@ -117,7 +117,7 @@ func TestRunAgentFailureFallsBackToOriginal(t *testing.T) {
 
 type failingAgent struct{ launched string }
 
-func (f *failingAgent) Name() string   { return "failing" }
+func (f *failingAgent) Name() string    { return "failing" }
 func (f *failingAgent) Available() bool { return true }
 func (f *failingAgent) Ask(context.Context, string) (string, error) {
 	return "", errFake

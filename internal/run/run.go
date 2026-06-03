@@ -21,8 +21,8 @@ type Runner struct {
 	Agent       agent.Agent
 	Asker       interview.Asker
 	Cfg         config.Config
-	Dir         string    // working dir for signal detection ("" → cwd)
-	Interactive bool       // false (e.g. piped/CI) downgrades confirm→print
+	Dir         string // working dir for signal detection ("" → cwd)
+	Interactive bool   // false (e.g. piped/CI) downgrades confirm→print
 	In          io.Reader
 	Out         io.Writer
 	Err         io.Writer
