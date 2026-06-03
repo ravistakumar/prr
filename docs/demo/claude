@@ -1,0 +1,19 @@
+#!/bin/sh
+# Fake "claude" CLI used ONLY to record the prr demo GIF deterministically.
+# It returns canned JSON for the headless refine call and prints a short
+# banner for the interactive launch — it never touches the network.
+if [ "$1" = "-p" ]; then
+	meta="$2"
+	case "$meta" in
+	*"already answered"*)
+		# Round 2: the user's answers are in the meta-prompt → confident.
+		printf '{"confidence":0.95,"refined_prompt":"Add a dark-mode toggle to the Settings page. Follow the OS theme by default, allow a manual override, and persist the choice to local storage. Update the theme provider and add a unit test for the toggle.","questions":[]}'
+		;;
+	*)
+		# Round 1: vague prompt → low confidence, one sharp question.
+		printf '{"confidence":0.40,"refined_prompt":"Add dark mode to the settings page.","questions":["Follow the OS theme by default or use a manual toggle, and should the choice persist across sessions?"]}'
+		;;
+	esac
+else
+	printf '\n  claude  starting session\n  building: %s\n\n' "$1"
+fi
